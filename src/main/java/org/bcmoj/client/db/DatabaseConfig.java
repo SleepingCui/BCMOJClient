@@ -1,4 +1,4 @@
-package org.bcmoj.client;
+package org.bcmoj.client.db;
 
 public class DatabaseConfig {
     private final String host;
@@ -17,7 +17,6 @@ public class DatabaseConfig {
 
     public String getUsername() { return username; }
     public String getPassword() { return password; }
-
     public String getJdbcUrl() {
         return String.format("jdbc:mysql://%s:%d/%s", host, port, database);
     }

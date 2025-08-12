@@ -1,7 +1,9 @@
-package org.bcmoj.client;
+package org.bcmoj.client.net;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.bcmoj.client.EvaluationResult;
+import org.bcmoj.client.TestCaseResult;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -21,7 +23,6 @@ public class ResponseProcessor {
             try {
                 JsonNode data = mapper.readTree(response);
                 Iterator<String> fieldNames = data.fieldNames();
-
                 while (fieldNames.hasNext()) {
                     String key = fieldNames.next();
                     if (key.endsWith("_res")) {
@@ -30,7 +31,7 @@ public class ResponseProcessor {
                         String resultText = resultMapping.getOrDefault(resultCode, "Unknown Status");
                         int timeUsed = data.has(index + "_time") ? data.get(index + "_time").asInt() : 0;
 
-                        testResults.add(new TestCaseResult(index, resultCode, resultText, timeUsed));
+                        testResults.add(new TestCaseResult(index, resultText, timeUsed));
                         totalTests++;
                         totalTime += timeUsed;
 
@@ -40,11 +41,9 @@ public class ResponseProcessor {
                     }
                 }
             } catch (Exception e) {
-                // 如果解析失败，记录原始响应
                 System.err.println("Failed to parse response: " + response);
             }
         }
-
         double averageTime = totalTests > 0 ? totalTime / totalTests : 0.0;
         return new EvaluationResult(testResults, accepted, totalTests, averageTime);
     }

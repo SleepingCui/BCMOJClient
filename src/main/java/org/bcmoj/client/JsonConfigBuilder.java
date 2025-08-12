@@ -8,26 +8,20 @@ import java.util.Map;
 public class JsonConfigBuilder {
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    public static String buildConfig(ProblemData problemData, boolean securityCheck,
-                                     boolean errorMode, int errorType) {
+    public static String buildConfig(ProblemData problemData, boolean securityCheck, boolean errorMode, int errorType) {
         try {
             ObjectNode config = mapper.createObjectNode();
             ObjectNode checkpoints = mapper.createObjectNode();
-
-            // 构建checkpoints
             for (int i = 0; i < problemData.examples().size(); i++) {
                 Map<String, String> example = problemData.examples().get(i);
                 int index = i + 1;
                 checkpoints.put(index + "_in", example.get("input").trim());
                 checkpoints.put(index + "_out", example.get("output").trim());
             }
-
-            // 基础配置
             config.put("timeLimit", (Integer) problemData.problem().get("time_limit"));
             config.set("checkpoints", checkpoints);
             config.put("securityCheck", securityCheck);
 
-            // 错误注入
             if (errorMode) {
                 switch (errorType) {
                     case 1:
@@ -55,7 +49,6 @@ public class JsonConfigBuilder {
                         break;
                 }
             }
-
             return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(config);
         } catch (Exception e) {
             throw new RuntimeException("构建JSON配置失败", e);

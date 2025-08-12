@@ -1,5 +1,7 @@
-package org.bcmoj.client;
+package org.bcmoj.client.db;
 
+
+import org.bcmoj.client.ProblemData;
 
 import java.sql.*;
 import java.util.*;
@@ -7,16 +9,12 @@ import java.util.*;
 public class DatabaseService {
 
     public ProblemData getProblemFromDatabase(int problemId, DatabaseConfig config) throws SQLException {
-        try (Connection conn = DriverManager.getConnection(
-                config.getJdbcUrl(), config.getUsername(), config.getPassword())) {
+        try (Connection conn = DriverManager.getConnection(config.getJdbcUrl(), config.getUsername(), config.getPassword())) {
 
-            // 获取题目信息
             Map<String, Object> problem = getProblemInfo(conn, problemId);
             if (problem.isEmpty()) {
                 throw new SQLException("题目ID " + problemId + " 不存在");
             }
-
-            // 获取样例数据
             List<Map<String, String>> examples = getExamples(conn, problemId);
             if (examples.isEmpty()) {
                 throw new SQLException("该题无测试用例");
@@ -47,7 +45,6 @@ public class DatabaseService {
     private List<Map<String, String>> getExamples(Connection conn, int problemId) throws SQLException {
         String sql = "SELECT input, output FROM examples WHERE problem_id = ? ORDER BY example_id";
         List<Map<String, String>> examples = new ArrayList<>();
-
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, problemId);
             try (ResultSet rs = stmt.executeQuery()) {
