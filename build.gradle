@@ -42,7 +42,6 @@ test {
     useJUnitPlatform()
 }
 
-// 运行任务配置
 run {
     jvmArgs = [
             '--module-path', configurations.runtimeClasspath.asPath,
@@ -50,11 +49,10 @@ run {
     ]
 }
 
-// 创建可执行的JAR任务
 jar {
     manifest {
         attributes(
-                'Main-Class': 'org.bcmoj.client.CodingClient'
+                'Main-Class': 'org.bcmoj.client.Main'
         )
     }
     from {
