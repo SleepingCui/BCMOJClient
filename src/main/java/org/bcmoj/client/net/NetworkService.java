@@ -20,7 +20,7 @@ public class NetworkService {
             try (DataOutputStream out = new DataOutputStream(socket.getOutputStream()); DataInputStream in = new DataInputStream(socket.getInputStream())) {
                 File file = new File(filePath);
                 if (!file.exists()) {
-                    throw new FileNotFoundException("文件不存在: " + filePath);
+                    throw new FileNotFoundException("File not exist: " + filePath);
                 }
                 byte[] filenameBytes = file.getName().getBytes(StandardCharsets.UTF_8);
                 out.writeInt(filenameBytes.length);
@@ -59,13 +59,12 @@ public class NetworkService {
                 }
 
             } catch (Exception e) {
-                System.err.println("发送/接收过程发生异常：");
                 e.printStackTrace();
                 throw e;
             }
 
         } catch (Exception e) {
-            System.err.println("连接服务器失败：" + e.getMessage());
+            System.err.println("Unable to connect to server:" + e.getMessage());
             e.printStackTrace();
             throw e;
         }
@@ -87,7 +86,7 @@ public class NetworkService {
             }
             return sb.toString();
         } catch (Exception e) {
-            throw new IOException("计算文件哈希失败", e);
+            throw new IOException("Failed to calculate hash", e);
         }
     }
 

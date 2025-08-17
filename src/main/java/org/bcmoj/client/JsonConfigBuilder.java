@@ -51,7 +51,7 @@ public class JsonConfigBuilder {
             }
             return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(config);
         } catch (Exception e) {
-            throw new RuntimeException("构建JSON配置失败", e);
+            throw new RuntimeException("Failed to build config", e);
         }
     }
 }

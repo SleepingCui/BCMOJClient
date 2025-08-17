@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 public class CodingClient extends Application {
-
-    // UI组件
     private TextField dbHost, dbPort, dbUser, dbPass, dbName;
     private TextField problemInput;
     private CheckBox securityCheck, errorMode;
@@ -42,7 +40,7 @@ public class CodingClient extends Application {
     public void start(Stage primaryStage) {
         initializeServices();
         initializeResultMapping();
-        primaryStage.setTitle("题目评测客户端");
+        primaryStage.setTitle("Judge Client");
         primaryStage.setScene(new Scene(createMainLayout(), 850, 650));
         primaryStage.show();
     }
@@ -71,7 +69,7 @@ public class CodingClient extends Application {
         mainLayout.getChildren().add(createDatabaseConfigSection());
         mainLayout.getChildren().add(createInputConfigSection());
         mainLayout.getChildren().add(createFileSelectionSection());
-        Button runButton = new Button("开始评测");
+        Button runButton = new Button("Start");
         runButton.setOnAction(e -> runEvaluation());
         mainLayout.getChildren().add(runButton);
         progressBar = new ProgressBar(0);
@@ -91,7 +89,7 @@ public class CodingClient extends Application {
         dbUser = new TextField("root");
         dbPass = new PasswordField();
         dbPass.setText("password");
-        dbName = new TextField("coding_problems");
+        dbName = new TextField("bcmoj");
         dbGrid.add(new Label("Host:"), 0, 0);
         dbGrid.add(dbHost, 1, 0);
         dbGrid.add(new Label("Port:"), 2, 0);
@@ -102,7 +100,7 @@ public class CodingClient extends Application {
         dbGrid.add(dbPass, 3, 1);
         dbGrid.add(new Label("Database:"), 0, 2);
         dbGrid.add(dbName, 1, 2);
-        TitledPane dbPane = new TitledPane("数据库配置", dbGrid);
+        TitledPane dbPane = new TitledPane("Database config", dbGrid);
         dbPane.setCollapsible(false);
         return dbPane;
     }
@@ -110,22 +108,22 @@ public class CodingClient extends Application {
     private VBox createInputConfigSection() {
         VBox inputBox = new VBox(5);
         problemInput = new TextField();
-        problemInput.setPromptText("请输入题目ID");
-        securityCheck = new CheckBox("启用安全检查");
-        errorMode = new CheckBox("注入错误配置");
+        problemInput.setPromptText("Problem ID");
+        securityCheck = new CheckBox("Enable security check");
+        errorMode = new CheckBox("Insert error config");
         errorType = new ComboBox<>();
         errorType.getItems().addAll(
-                "1 - 缺少 timeLimit",
-                "2 - timeLimit 为负数",
-                "3 - 缺少 securityCheck",
-                "4 - checkpoints 不是对象",
-                "5 - checkpoints 缺少 _out",
-                "6 - checkpoints 为空对象"
+                "1 - No timeLimit",
+                "2 - timeLimit is a negative number",
+                "3 - No securityCheck",
+                "4 - Checkpoints not a object",
+                "5 - No _out",
+                "6 - Empty object"
         );
         errorType.getSelectionModel().selectFirst();
         errorType.setDisable(true);
         errorMode.setOnAction(e -> errorType.setDisable(!errorMode.isSelected()));
-        inputBox.getChildren().addAll(new Label("题目ID:"), problemInput, securityCheck, errorMode, errorType);
+        inputBox.getChildren().addAll(new Label("Problem ID:"), problemInput, securityCheck, errorMode, errorType);
 
         return inputBox;
     }
@@ -135,9 +133,9 @@ public class CodingClient extends Application {
         fileBox.setAlignment(Pos.CENTER_LEFT);
         cppPathDisplay = new TextField();
         cppPathDisplay.setEditable(false);
-        cppPathDisplay.setPromptText("请选择C++文件");
+        cppPathDisplay.setPromptText("Choose Cpp file");
         cppPathDisplay.setPrefWidth(400);
-        Button chooseButton = new Button("选择 C++ 文件");
+        Button chooseButton = new Button("Choose Cpp file");
         chooseButton.setOnAction(e -> selectFile());
         fileBox.getChildren().addAll(cppPathDisplay, chooseButton);
         return fileBox;
@@ -149,16 +147,15 @@ public class CodingClient extends Application {
         outputBox.setEditable(false);
         outputBox.setPrefRowCount(15);
         outputSection.getChildren().addAll(
-                new Label("输出日志:"),
+                new Label("Logs:"),
                 outputBox
         );
-
         return outputSection;
     }
 
     private void selectFile() {
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("选择 C++ 文件");
+        fileChooser.setTitle("Choose Cpp file");
         fileChooser.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("C++ Files", "*.cpp", "*.cc", "*.cxx"),
                 new FileChooser.ExtensionFilter("All Files", "*.*")
@@ -183,21 +180,18 @@ public class CodingClient extends Application {
                         Platform.runLater(() -> showError());
                         return null;
                     }
-                    Platform.runLater(() -> log("正在获取题目信息..."));
+                    Platform.runLater(() -> log("Getting problem info..."));
                     ProblemData problemData = databaseService.getProblemFromDatabase(problemId, dbConfig);
 
-                    Platform.runLater(() -> log(String.format("题目: %s，共 %d 个样例", problemData.problem().get("title"), problemData.examples().size())));
+                    Platform.runLater(() -> log(String.format("Problem: %s, Examples: %d", problemData.problem().get("title"), problemData.examples().size())));
                     String jsonConfig = buildJsonConfig(problemData);
-                    Platform.runLater(() -> log("生成的配置 JSON:\n" + jsonConfig));
-                    Platform.runLater(() -> log("开始发送文件和配置..."));
-                    List<String> responses = networkService.sendAndReceive(
-                            cppFile, jsonConfig, serverHost, serverPort,
-                            progress -> Platform.runLater(() -> progressBar.setProgress(progress))
-                    );
+                    Platform.runLater(() -> log("Config:\n" + jsonConfig));
+                    Platform.runLater(() -> log("Sending data"));
+                    List<String> responses = networkService.sendAndReceive(cppFile, jsonConfig, serverHost, serverPort, progress -> Platform.runLater(() -> progressBar.setProgress(progress)));
                     Platform.runLater(() -> processResponses(responses));
 
                 } catch (Exception e) {
-                    Platform.runLater(() -> log("<错误> " + e.getMessage()));
+                    Platform.runLater(() -> log("<Error> " + e.getMessage()));
                     e.printStackTrace();
                 }
                 return null;
@@ -218,12 +212,11 @@ public class CodingClient extends Application {
     }
 
     private void processResponses(List<String> responses) {
-        log("\n=== 评测结果 ===");
         EvaluationResult result = ResponseProcessor.processResponses(responses, resultMapping);
         for (TestCaseResult testCase : result.testResults()) {
-            log(String.format("样例 %s: %s - %dms", testCase.index(), testCase.resultText(), testCase.timeUsed()));
+            log(String.format("Example %s: %s - %dms", testCase.index(), testCase.resultText(), testCase.timeUsed()));
         }
-        log(String.format("\n总样例数: %d, 通过: %d, 平均用时: %.2fms", result.totalTests(), result.accepted(), result.averageTime()));
+        log(String.format("\nTotalExamples: %d, AC: %d, AvgTime: %.2fms", result.totalTests(), result.accepted(), result.averageTime()));
     }
 
     private void log(String message) {
@@ -232,9 +225,9 @@ public class CodingClient extends Application {
 
     private void showError() {
         Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("错误");
+        alert.setTitle("Error");
         alert.setHeaderText(null);
-        alert.setContentText("C++ 文件不存在或未选择");
+        alert.setContentText("file not exist");
         alert.showAndWait();
     }
 

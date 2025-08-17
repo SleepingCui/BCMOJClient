@@ -13,11 +13,11 @@ public class DatabaseService {
 
             Map<String, Object> problem = getProblemInfo(conn, problemId);
             if (problem.isEmpty()) {
-                throw new SQLException("题目ID " + problemId + " 不存在");
+                throw new SQLException("ProblemID " + problemId + " not exist");
             }
             List<Map<String, String>> examples = getExamples(conn, problemId);
             if (examples.isEmpty()) {
-                throw new SQLException("该题无测试用例");
+                throw new SQLException("NO Examples");
             }
 
             return new ProblemData(problem, examples);
