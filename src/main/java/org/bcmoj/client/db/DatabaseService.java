@@ -5,12 +5,13 @@ import org.bcmoj.client.ProblemData;
 
 import java.sql.*;
 import java.util.*;
+import org.bcmoj.client.CodingClient;
 
+@SuppressWarnings("EmptyTryBlock")
 public class DatabaseService {
 
     public ProblemData getProblemFromDatabase(int problemId, DatabaseConfig config) throws SQLException {
         try (Connection conn = DriverManager.getConnection(config.getJdbcUrl(), config.getUsername(), config.getPassword())) {
-
             Map<String, Object> problem = getProblemInfo(conn, problemId);
             if (problem.isEmpty()) {
                 throw new SQLException("ProblemID " + problemId + " not exist");
@@ -19,7 +20,6 @@ public class DatabaseService {
             if (examples.isEmpty()) {
                 throw new SQLException("NO Examples");
             }
-
             return new ProblemData(problem, examples);
         }
     }
@@ -57,5 +57,22 @@ public class DatabaseService {
             }
         }
         return examples;
+    }
+    public void testConnection(DatabaseConfig config) throws SQLException {
+        long startTime = System.currentTimeMillis();
+        try (Connection conn = DriverManager.getConnection(config.getJdbcUrl(), config.getUsername(), config.getPassword())) {
+            DatabaseMetaData metaData = conn.getMetaData();
+            long elapsed = System.currentTimeMillis() - startTime;
+            CodingClient.log("Successfully connected to database '" + ", elapsed " + elapsed + "ms");
+            CodingClient.log("Database Product: " + metaData.getDatabaseProductName());
+            CodingClient.log("Database Version: " + metaData.getDatabaseProductVersion());
+            CodingClient.log("Driver Name: " + metaData.getDriverName());
+            CodingClient.log("Driver Version: " + metaData.getDriverVersion());
+        } catch (SQLException e) {
+            long elapsed = System.currentTimeMillis() - startTime;
+            CodingClient.log("Failed to connect to database '" + ", elapsed " + elapsed + "ms");
+            CodingClient.log("Error: " + e.getMessage());
+            throw new SQLException(e);
+        }
     }
 }

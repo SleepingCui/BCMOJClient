@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import org.bcmoj.client.CodingClient;
 
 public class NetworkService {
 
@@ -44,6 +45,7 @@ public class NetworkService {
                 byte[] hashBytes = hash.getBytes(StandardCharsets.UTF_8);
                 out.writeInt(hashBytes.length);
                 out.write(hashBytes);
+                CodingClient.log("Send OK!");
                 while (true) {
                     try {
                         int responseLength = in.readInt();
@@ -57,17 +59,16 @@ public class NetworkService {
                         break;
                     }
                 }
-
             } catch (Exception e) {
                 e.printStackTrace();
                 throw e;
             }
-
         } catch (Exception e) {
             System.err.println("Unable to connect to server:" + e.getMessage());
             e.printStackTrace();
             throw e;
         }
+        CodingClient.log("Received response from server: " + responses);
         return responses;
     }
 
@@ -87,6 +88,19 @@ public class NetworkService {
             return sb.toString();
         } catch (Exception e) {
             throw new IOException("Failed to calculate hash", e);
+        }
+    }
+
+    public void testConnection(String serverHost, int serverPort) throws IOException {
+        long startTime = System.currentTimeMillis();
+        try (Socket socket = new Socket(serverHost, serverPort)) {
+            socket.setSoTimeout(5000);
+            long elapsed = System.currentTimeMillis() - startTime;
+            CodingClient.log("Successfully connected to server " + serverHost + ":" + serverPort + ", elapsed " + elapsed + "ms");
+        } catch (IOException e) {
+            long elapsed = System.currentTimeMillis() - startTime;
+            CodingClient.log("Failed to connect to server " + serverHost + ":" + serverPort + ", elapsed " + elapsed + "ms");
+            throw new IOException(e);
         }
     }
 

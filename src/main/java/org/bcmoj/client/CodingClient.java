@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 
 public class CodingClient extends Application {
+    private static CodingClient instance;
+
     private TextField dbHost, dbPort, dbUser, dbPass, dbName;
     private TextField problemInput;
     private CheckBox securityCheck, enableO2, errorMode;
@@ -30,23 +32,26 @@ public class CodingClient extends Application {
     private TextArea outputBox;
     private ProgressBar progressBar;
     private DatabaseConfig dbConfig;
-    private final String serverHost = "localhost";
-    private final int serverPort = 12345;
     private Map<Integer, String> resultMapping;
     private DatabaseService databaseService;
     private NetworkService networkService;
+    private TextField serverHostField, serverPortField;
+    private TextArea customJsonInput;
+    private CheckBox useCustomJson;
+    private TextArea problemInfoArea;
 
     @Override
     public void start(Stage primaryStage) {
+        instance = this;
         initializeServices();
         initializeResultMapping();
         primaryStage.setTitle("Judge Client");
-        primaryStage.setScene(new Scene(createMainLayout(), 750, 600));
+        primaryStage.setScene(new Scene(createMainLayout(), 750, 700));
         primaryStage.show();
     }
 
     private void initializeServices() {
-        dbConfig = new DatabaseConfig("localhost", 3306, "root", "password", "coding_problems");
+        dbConfig = new DatabaseConfig("localhost", 3306, "root", "password", "bcmoj");
         databaseService = new DatabaseService();
         networkService = new NetworkService();
         initializeResultMapping();
@@ -76,7 +81,6 @@ public class CodingClient extends Application {
         progressBar.setPrefWidth(Double.MAX_VALUE);
         mainLayout.getChildren().add(progressBar);
         mainLayout.getChildren().add(createOutputSection());
-
         return mainLayout;
     }
 
@@ -90,6 +94,14 @@ public class CodingClient extends Application {
         dbPass = new PasswordField();
         dbPass.setText("password");
         dbName = new TextField("bcmoj");
+
+        serverHostField = new TextField("localhost");
+        serverPortField = new TextField("12345");
+        Button testDbBtn = new Button("Test DB");
+        testDbBtn.setOnAction(e -> testDatabaseConnection());
+        Button testServerBtn = new Button("Test Server");
+        testServerBtn.setOnAction(e -> testServerConnection());
+
         dbGrid.add(new Label("Host:"), 0, 0);
         dbGrid.add(dbHost, 1, 0);
         dbGrid.add(new Label("Port:"), 2, 0);
@@ -100,7 +112,13 @@ public class CodingClient extends Application {
         dbGrid.add(dbPass, 3, 1);
         dbGrid.add(new Label("Database:"), 0, 2);
         dbGrid.add(dbName, 1, 2);
-        TitledPane dbPane = new TitledPane("Database config", dbGrid);
+        dbGrid.add(new Label("Server IP:"), 0, 3);
+        dbGrid.add(serverHostField, 1, 3);
+        dbGrid.add(new Label("Server Port:"), 2, 3);
+        dbGrid.add(serverPortField, 3, 3);
+        dbGrid.add(testDbBtn, 1, 4);
+        dbGrid.add(testServerBtn, 3, 4);
+        TitledPane dbPane = new TitledPane("Database & Server config", dbGrid);
         dbPane.setCollapsible(false);
         return dbPane;
     }
@@ -109,10 +127,13 @@ public class CodingClient extends Application {
         VBox inputBox = new VBox(5);
         problemInput = new TextField();
         problemInput.setPromptText("Problem ID");
-
+        problemInput.focusedProperty().addListener((obs, oldV, newV) -> {
+            if (!newV) {
+                loadProblemInfo();
+            }
+        });
         securityCheck = new CheckBox("Enable security check");
         enableO2 = new CheckBox("Enable O2 optimization");
-
         compareMode = new ComboBox<>();
         compareMode.getItems().addAll(
                 "1 - Strict match",
@@ -121,7 +142,6 @@ public class CodingClient extends Application {
                 "4 - Float tolerant"
         );
         compareMode.getSelectionModel().selectFirst();
-
         errorMode = new CheckBox("Insert error config");
         errorType = new ComboBox<>();
         errorType.getItems().addAll(
@@ -135,11 +155,18 @@ public class CodingClient extends Application {
         errorType.getSelectionModel().selectFirst();
         errorType.setDisable(true);
         errorMode.setOnAction(e -> errorType.setDisable(!errorMode.isSelected()));
-
-        inputBox.getChildren().addAll(new Label("Problem ID:"), problemInput, securityCheck, enableO2, new Label("Compare mode:"), compareMode, errorMode,
-                errorType
-        );
-
+        useCustomJson = new CheckBox("Use custom JSON");
+        customJsonInput = new TextArea();
+        customJsonInput.setPromptText("Paste your JSON config here...");
+        customJsonInput.setPrefRowCount(12);
+        customJsonInput.setDisable(true);
+        useCustomJson.setOnAction(e -> customJsonInput.setDisable(!useCustomJson.isSelected()));
+        problemInfoArea = new TextArea();
+        problemInfoArea.setEditable(false);
+        problemInfoArea.setPrefRowCount(6);
+        problemInfoArea.setPromptText("Problem info will appear here...");
+        HBox problemBox = new HBox(10, new VBox(new Label("Problem ID:"), problemInput, securityCheck, enableO2, new Label("Compare mode:"), compareMode, errorMode, errorType, useCustomJson, customJsonInput), problemInfoArea);
+        inputBox.getChildren().add(problemBox);
         return inputBox;
     }
 
@@ -171,10 +198,7 @@ public class CodingClient extends Application {
     private void selectFile() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Choose Cpp file");
-        fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("C++ Files", "*.cpp", "*.cc", "*.cxx"),
-                new FileChooser.ExtensionFilter("All Files", "*.*")
-        );
+        fileChooser.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("C++ Files", "*.cpp", "*.cc", "*.cxx"), new FileChooser.ExtensionFilter("All Files", "*.*"));
         File selectedFile = fileChooser.showOpenDialog(null);
         if (selectedFile != null) {
             cppPathDisplay.setText(selectedFile.getAbsolutePath());
@@ -182,6 +206,7 @@ public class CodingClient extends Application {
     }
 
     private void runEvaluation() {
+        outputBox.clear();
         Task<Void> task = new Task<>() {
             @SuppressWarnings("CallToPrintStackTrace")
             @Override
@@ -195,22 +220,20 @@ public class CodingClient extends Application {
                         Platform.runLater(() -> showError());
                         return null;
                     }
-                    Platform.runLater(() -> log("Getting problem info..."));
-                    ProblemData problemData = databaseService.getProblemFromDatabase(problemId, dbConfig);
-
-                    Platform.runLater(() -> log(String.format("Problem: %s, Examples: %d",
-                            problemData.problem().get("title"),
-                            problemData.examples().size())));
-
-                    String jsonConfig = buildJsonConfig(problemData);
-                    Platform.runLater(() -> log("Config:\n" + jsonConfig));
-                    Platform.runLater(() -> log("Sending data"));
-                    List<String> responses = networkService.sendAndReceive(
-                            cppFile, jsonConfig, serverHost, serverPort,
-                            progress -> Platform.runLater(() -> progressBar.setProgress(progress))
-                    );
+                    String serverIp = serverHostField.getText().trim();
+                    int serverPort = Integer.parseInt(serverPortField.getText().trim());
+                    String jsonConfig;
+                    if (useCustomJson.isSelected()) {
+                        jsonConfig = customJsonInput.getText().trim();
+                        Platform.runLater(() -> log("Using custom JSON:\n" + jsonConfig));
+                    } else {
+                        ProblemData problemData = databaseService.getProblemFromDatabase(problemId, dbConfig);
+                        jsonConfig = buildJsonConfig(problemData);
+                        Platform.runLater(() -> log("Config:\n" + jsonConfig));
+                    }
+                    Platform.runLater(() -> log("Sending data to " + serverIp + ":" + serverPort));
+                    List<String> responses = networkService.sendAndReceive(cppFile, jsonConfig, serverIp, serverPort, progress -> Platform.runLater(() -> progressBar.setProgress(progress)));
                     Platform.runLater(() -> processResponses(responses));
-
                 } catch (Exception e) {
                     Platform.runLater(() -> log("<Error> " + e.getMessage()));
                     e.printStackTrace();
@@ -218,45 +241,30 @@ public class CodingClient extends Application {
                 return null;
             }
         };
-
         new Thread(task).start();
     }
 
     private void updateDatabaseConfig() {
-        dbConfig = new DatabaseConfig(
-                dbHost.getText().trim(),
-                Integer.parseInt(dbPort.getText().trim()),
-                dbUser.getText().trim(),
-                dbPass.getText().trim(),
-                dbName.getText().trim()
-        );
+        dbConfig = new DatabaseConfig(dbHost.getText().trim(), Integer.parseInt(dbPort.getText().trim()), dbUser.getText().trim(), dbPass.getText().trim(), dbName.getText().trim());
     }
 
     private String buildJsonConfig(ProblemData problemData) {
-        return JsonConfigBuilder.buildConfig(
-                problemData,
-                securityCheck.isSelected(),
-                enableO2.isSelected(),
-                compareMode.getSelectionModel().getSelectedIndex() + 1,
-                errorMode.isSelected(),
-                errorType.getSelectionModel().getSelectedIndex() + 1
-        );
+        return JsonConfigBuilder.buildConfig(problemData, securityCheck.isSelected(), enableO2.isSelected(), compareMode.getSelectionModel().getSelectedIndex() + 1, errorMode.isSelected(), errorType.getSelectionModel().getSelectedIndex() + 1);
     }
 
     private void processResponses(List<String> responses) {
         EvaluationResult result = ResponseProcessor.processResponses(responses, resultMapping);
         for (TestCaseResult testCase : result.testResults()) {
-            log(String.format("Example %s: %s - %dms",
-                    testCase.index(), testCase.resultText(), testCase.timeUsed()));
+            log(String.format("Example %s: %s - %dms", testCase.index(), testCase.resultText(), testCase.timeUsed()));
         }
-        log(String.format("\nTotalExamples: %d, AC: %d, AvgTime: %.2fms",
-                result.totalTests(), result.accepted(), result.averageTime()));
+        log(String.format("\nTotal: %d, AC: %d, AvgTime: %.2fms", result.totalTests(), result.accepted(), result.averageTime()));
     }
 
-    private void log(String message) {
-        outputBox.appendText(message + "\n");
+    public static void log(String message) {
+        if (instance != null) {
+            Platform.runLater(() -> instance.outputBox.appendText(message + "\n"));
+        }
     }
-
     private void showError() {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Error");
@@ -264,4 +272,62 @@ public class CodingClient extends Application {
         alert.setContentText("file not exist");
         alert.showAndWait();
     }
+
+    private void testDatabaseConnection() {
+        try {
+            updateDatabaseConfig();
+            databaseService.testConnection(dbConfig);
+            showInfo("Database connection successful.");
+        } catch (Exception e) {
+            showError("Database connection failed: " + e.getMessage());
+        }
+    }
+
+    private void testServerConnection() {
+        try {
+            String ip = serverHostField.getText().trim();
+            int port = Integer.parseInt(serverPortField.getText().trim());
+            networkService.testConnection(ip, port);
+            showInfo("Server connection successful.");
+        } catch (Exception e) {
+            showError("Server connection failed: " + e.getMessage());
+        }
+    }
+    private void loadProblemInfo() {
+        try {
+            if (problemInput.getText().trim().isEmpty()) return;
+            int problemId = Integer.parseInt(problemInput.getText().trim());
+            ProblemData problemData = databaseService.getProblemFromDatabase(problemId, dbConfig);
+            StringBuilder sb = new StringBuilder();
+            sb.append("Title: ").append(problemData.problem().get("title")).append("\n");
+            sb.append("Time Limit: ").append(problemData.problem().get("timeLimit")).append("\n");
+            sb.append("Security Check: ").append(problemData.problem().get("securityCheck")).append("\n");
+            if (!problemData.examples().isEmpty()) {
+                Map<String, String> example = problemData.examples().get(0);
+                sb.append("Example Input: ").append(example.get("input")).append("\n");
+                sb.append("Example Output: ").append(example.get("output")).append("\n");
+            }
+            String text = sb.toString();
+            Platform.runLater(() -> problemInfoArea.setText(text));
+        } catch (Exception e) {
+            Platform.runLater(() -> problemInfoArea.setText("Error loading problem: " + e.getMessage()));
+        }
+    }
+
+    private void showInfo(String msg) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Info");
+        alert.setHeaderText(null);
+        alert.setContentText(msg);
+        alert.showAndWait();
+    }
+
+    private void showError(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText(null);
+        alert.setContentText(msg);
+        alert.showAndWait();
+    }
+
 }

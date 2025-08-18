@@ -7,44 +7,21 @@ import java.util.Map;
 
 public class JsonConfigBuilder {
     private static final ObjectMapper mapper = new ObjectMapper();
-
-    /**
-     * 构建评测配置 JSON
-     *
-     * @param problemData   题目信息
-     * @param securityCheck 是否启用安全检查
-     * @param enableO2      是否启用 O2 优化
-     * @param compareMode   输出比较模式 (1~4)
-     * @param errorMode     是否启用错误注入
-     * @param errorType     错误类型编号
-     * @return 格式化后的 JSON 字符串
-     */
-    public static String buildConfig(ProblemData problemData,
-                                     boolean securityCheck,
-                                     boolean enableO2,
-                                     int compareMode,
-                                     boolean errorMode,
-                                     int errorType) {
+    public static String buildConfig(ProblemData problemData, boolean securityCheck, boolean enableO2, int compareMode, boolean errorMode, int errorType) {
         try {
             ObjectNode config = mapper.createObjectNode();
             ObjectNode checkpoints = mapper.createObjectNode();
-
-            // 构造 checkpoints
             for (int i = 0; i < problemData.examples().size(); i++) {
                 Map<String, String> example = problemData.examples().get(i);
                 int index = i + 1;
                 checkpoints.put(index + "_in", example.get("input").trim());
                 checkpoints.put(index + "_out", example.get("output").trim());
             }
-
-            // 正常配置
             config.put("timeLimit", (Integer) problemData.problem().get("time_limit"));
             config.set("checkpoints", checkpoints);
             config.put("securityCheck", securityCheck);
             config.put("enableO2", enableO2);
             config.put("compareMode", compareMode);
-
-            // 错误注入逻辑
             if (errorMode) {
                 switch (errorType) {
                     case 1:
@@ -72,7 +49,6 @@ public class JsonConfigBuilder {
                         break;
                 }
             }
-
             return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(config);
         } catch (Exception e) {
             throw new RuntimeException("Failed to build config", e);
