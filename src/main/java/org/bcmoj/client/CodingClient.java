@@ -24,8 +24,8 @@ import java.util.Map;
 public class CodingClient extends Application {
     private TextField dbHost, dbPort, dbUser, dbPass, dbName;
     private TextField problemInput;
-    private CheckBox securityCheck, errorMode;
-    private ComboBox<String> errorType;
+    private CheckBox securityCheck, enableO2, errorMode;
+    private ComboBox<String> compareMode, errorType;
     private TextField cppPathDisplay;
     private TextArea outputBox;
     private ProgressBar progressBar;
@@ -41,7 +41,7 @@ public class CodingClient extends Application {
         initializeServices();
         initializeResultMapping();
         primaryStage.setTitle("Judge Client");
-        primaryStage.setScene(new Scene(createMainLayout(), 850, 650));
+        primaryStage.setScene(new Scene(createMainLayout(), 750, 600));
         primaryStage.show();
     }
 
@@ -109,7 +109,19 @@ public class CodingClient extends Application {
         VBox inputBox = new VBox(5);
         problemInput = new TextField();
         problemInput.setPromptText("Problem ID");
+
         securityCheck = new CheckBox("Enable security check");
+        enableO2 = new CheckBox("Enable O2 optimization");
+
+        compareMode = new ComboBox<>();
+        compareMode.getItems().addAll(
+                "1 - Strict match",
+                "2 - Ignore spaces",
+                "3 - Case insensitive",
+                "4 - Float tolerant"
+        );
+        compareMode.getSelectionModel().selectFirst();
+
         errorMode = new CheckBox("Insert error config");
         errorType = new ComboBox<>();
         errorType.getItems().addAll(
@@ -123,7 +135,10 @@ public class CodingClient extends Application {
         errorType.getSelectionModel().selectFirst();
         errorType.setDisable(true);
         errorMode.setOnAction(e -> errorType.setDisable(!errorMode.isSelected()));
-        inputBox.getChildren().addAll(new Label("Problem ID:"), problemInput, securityCheck, errorMode, errorType);
+
+        inputBox.getChildren().addAll(new Label("Problem ID:"), problemInput, securityCheck, enableO2, new Label("Compare mode:"), compareMode, errorMode,
+                errorType
+        );
 
         return inputBox;
     }
@@ -183,11 +198,17 @@ public class CodingClient extends Application {
                     Platform.runLater(() -> log("Getting problem info..."));
                     ProblemData problemData = databaseService.getProblemFromDatabase(problemId, dbConfig);
 
-                    Platform.runLater(() -> log(String.format("Problem: %s, Examples: %d", problemData.problem().get("title"), problemData.examples().size())));
+                    Platform.runLater(() -> log(String.format("Problem: %s, Examples: %d",
+                            problemData.problem().get("title"),
+                            problemData.examples().size())));
+
                     String jsonConfig = buildJsonConfig(problemData);
                     Platform.runLater(() -> log("Config:\n" + jsonConfig));
                     Platform.runLater(() -> log("Sending data"));
-                    List<String> responses = networkService.sendAndReceive(cppFile, jsonConfig, serverHost, serverPort, progress -> Platform.runLater(() -> progressBar.setProgress(progress)));
+                    List<String> responses = networkService.sendAndReceive(
+                            cppFile, jsonConfig, serverHost, serverPort,
+                            progress -> Platform.runLater(() -> progressBar.setProgress(progress))
+                    );
                     Platform.runLater(() -> processResponses(responses));
 
                 } catch (Exception e) {
@@ -202,21 +223,34 @@ public class CodingClient extends Application {
     }
 
     private void updateDatabaseConfig() {
-        dbConfig = new DatabaseConfig(dbHost.getText().trim(), Integer.parseInt(dbPort.getText().trim()), dbUser.getText().trim(), dbPass.getText().trim(), dbName.getText().trim()
+        dbConfig = new DatabaseConfig(
+                dbHost.getText().trim(),
+                Integer.parseInt(dbPort.getText().trim()),
+                dbUser.getText().trim(),
+                dbPass.getText().trim(),
+                dbName.getText().trim()
         );
     }
 
     private String buildJsonConfig(ProblemData problemData) {
-        return JsonConfigBuilder.buildConfig(problemData, securityCheck.isSelected(), errorMode.isSelected(), errorType.getSelectionModel().getSelectedIndex() + 1
+        return JsonConfigBuilder.buildConfig(
+                problemData,
+                securityCheck.isSelected(),
+                enableO2.isSelected(),
+                compareMode.getSelectionModel().getSelectedIndex() + 1,
+                errorMode.isSelected(),
+                errorType.getSelectionModel().getSelectedIndex() + 1
         );
     }
 
     private void processResponses(List<String> responses) {
         EvaluationResult result = ResponseProcessor.processResponses(responses, resultMapping);
         for (TestCaseResult testCase : result.testResults()) {
-            log(String.format("Example %s: %s - %dms", testCase.index(), testCase.resultText(), testCase.timeUsed()));
+            log(String.format("Example %s: %s - %dms",
+                    testCase.index(), testCase.resultText(), testCase.timeUsed()));
         }
-        log(String.format("\nTotalExamples: %d, AC: %d, AvgTime: %.2fms", result.totalTests(), result.accepted(), result.averageTime()));
+        log(String.format("\nTotalExamples: %d, AC: %d, AvgTime: %.2fms",
+                result.totalTests(), result.accepted(), result.averageTime()));
     }
 
     private void log(String message) {
@@ -230,5 +264,4 @@ public class CodingClient extends Application {
         alert.setContentText("file not exist");
         alert.showAndWait();
     }
-
 }
