@@ -7,7 +7,6 @@ import java.sql.*;
 import java.util.*;
 import org.bcmoj.client.CodingClient;
 
-@SuppressWarnings("EmptyTryBlock")
 public class DatabaseService {
 
     public ProblemData getProblemFromDatabase(int problemId, DatabaseConfig config) throws SQLException {

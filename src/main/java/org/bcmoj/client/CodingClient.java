@@ -188,10 +188,7 @@ public class CodingClient extends Application {
         outputBox = new TextArea();
         outputBox.setEditable(false);
         outputBox.setPrefRowCount(15);
-        outputSection.getChildren().addAll(
-                new Label("Logs:"),
-                outputBox
-        );
+        outputSection.getChildren().addAll(new Label("Logs:"), outputBox);
         return outputSection;
     }
 
@@ -300,8 +297,7 @@ public class CodingClient extends Application {
             ProblemData problemData = databaseService.getProblemFromDatabase(problemId, dbConfig);
             StringBuilder sb = new StringBuilder();
             sb.append("Title: ").append(problemData.problem().get("title")).append("\n");
-            sb.append("Time Limit: ").append(problemData.problem().get("timeLimit")).append("\n");
-            sb.append("Security Check: ").append(problemData.problem().get("securityCheck")).append("\n");
+            sb.append("Time Limit: ").append(problemData.problem().get("time_limit")).append("ms").append("\n");
             if (!problemData.examples().isEmpty()) {
                 Map<String, String> example = problemData.examples().get(0);
                 sb.append("Example Input: ").append(example.get("input")).append("\n");
