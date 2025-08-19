@@ -160,7 +160,12 @@ public class CodingClient extends Application {
         customJsonInput.setPromptText("Paste your JSON config here...");
         customJsonInput.setPrefRowCount(12);
         customJsonInput.setDisable(true);
-        useCustomJson.setOnAction(e -> customJsonInput.setDisable(!useCustomJson.isSelected()));
+        useCustomJson.setOnAction(e -> {boolean useCustom = useCustomJson.isSelected(); customJsonInput.setDisable(!useCustom);
+            problemInput.setDisable(useCustom);
+            securityCheck.setDisable(useCustom);
+            enableO2.setDisable(useCustom);
+            compareMode.setDisable(useCustom);
+        });
         problemInfoArea = new TextArea();
         problemInfoArea.setEditable(false);
         problemInfoArea.setPrefRowCount(6);
@@ -210,9 +215,7 @@ public class CodingClient extends Application {
             protected Void call() {
                 try {
                     updateDatabaseConfig();
-                    int problemId = Integer.parseInt(problemInput.getText().trim());
                     String cppFile = cppPathDisplay.getText();
-
                     if (cppFile.isEmpty() || !Files.exists(new File(cppFile).toPath())) {
                         Platform.runLater(() -> showError());
                         return null;
@@ -221,14 +224,17 @@ public class CodingClient extends Application {
                     int serverPort = Integer.parseInt(serverPortField.getText().trim());
                     String jsonConfig;
                     if (useCustomJson.isSelected()) {
-                        jsonConfig = customJsonInput.getText().trim();
-                        Platform.runLater(() -> log("Using custom JSON:\n" + jsonConfig));
+                        final String finalJson = customJsonInput.getText().trim();
+                        Platform.runLater(() -> log("Using custom JSON:\n" + finalJson));
+                        jsonConfig = finalJson;
                     } else {
+                        int problemId = Integer.parseInt(problemInput.getText().trim());
                         ProblemData problemData = databaseService.getProblemFromDatabase(problemId, dbConfig);
                         jsonConfig = buildJsonConfig(problemData);
-                        Platform.runLater(() -> log("Config:\n" + jsonConfig));
                     }
-                    Platform.runLater(() -> log("Sending data to " + serverIp + ":" + serverPort));
+                    jsonConfig = JsonConfigBuilder.applyErrorConfig(jsonConfig, errorMode.isSelected(), errorType.getSelectionModel().getSelectedIndex() + 1);
+                    final String finalJson = jsonConfig;
+                    Platform.runLater(() -> log("Final JSON:\n" + finalJson));
                     List<String> responses = networkService.sendAndReceive(cppFile, jsonConfig, serverIp, serverPort, progress -> Platform.runLater(() -> progressBar.setProgress(progress)));
                     Platform.runLater(() -> processResponses(responses));
                 } catch (Exception e) {
@@ -240,7 +246,6 @@ public class CodingClient extends Application {
         };
         new Thread(task).start();
     }
-
     private void updateDatabaseConfig() {
         dbConfig = new DatabaseConfig(dbHost.getText().trim(), Integer.parseInt(dbPort.getText().trim()), dbUser.getText().trim(), dbPass.getText().trim(), dbName.getText().trim());
     }

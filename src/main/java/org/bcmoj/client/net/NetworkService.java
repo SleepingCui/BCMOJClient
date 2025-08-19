@@ -19,6 +19,7 @@ public class NetworkService {
             socket.setSoTimeout(30000);
 
             try (DataOutputStream out = new DataOutputStream(socket.getOutputStream()); DataInputStream in = new DataInputStream(socket.getInputStream())) {
+                CodingClient.log("Sending data to "+serverHost + ":" + serverPort+"...");
                 File file = new File(filePath);
                 if (!file.exists()) {
                     throw new FileNotFoundException("File not exist: " + filePath);
@@ -46,6 +47,7 @@ public class NetworkService {
                 out.writeInt(hashBytes.length);
                 out.write(hashBytes);
                 CodingClient.log("Send OK!");
+                CodingClient.log("Waiting for response...");
                 while (true) {
                     try {
                         int responseLength = in.readInt();
