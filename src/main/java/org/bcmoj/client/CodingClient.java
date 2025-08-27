@@ -123,13 +123,13 @@ public class CodingClient extends Application {
         return dbPane;
     }
 
-    private VBox createInputConfigSection() {
+  private VBox createInputConfigSection() {
         VBox inputBox = new VBox(5);
         problemInput = new TextField();
         problemInput.setPromptText("Problem ID");
-        problemInput.focusedProperty().addListener((obs, oldV, newV) -> {
-            if (!newV) {
-                loadProblemInfo();
+        problemInput.textProperty().addListener((obs, oldV, newV) -> {
+            if (!newV.trim().isEmpty()) {
+                new Thread(this::loadProblemInfo).start();
             }
         });
         securityCheck = new CheckBox("Enable security check");
@@ -160,7 +160,9 @@ public class CodingClient extends Application {
         customJsonInput.setPromptText("Paste your JSON config here...");
         customJsonInput.setPrefRowCount(12);
         customJsonInput.setDisable(true);
-        useCustomJson.setOnAction(e -> {boolean useCustom = useCustomJson.isSelected(); customJsonInput.setDisable(!useCustom);
+        useCustomJson.setOnAction(e -> {
+            boolean useCustom = useCustomJson.isSelected();
+            customJsonInput.setDisable(!useCustom);
             problemInput.setDisable(useCustom);
             securityCheck.setDisable(useCustom);
             enableO2.setDisable(useCustom);
@@ -170,7 +172,10 @@ public class CodingClient extends Application {
         problemInfoArea.setEditable(false);
         problemInfoArea.setPrefRowCount(6);
         problemInfoArea.setPromptText("Problem info will appear here...");
-        HBox problemBox = new HBox(10, new VBox(new Label("Problem ID:"), problemInput, securityCheck, enableO2, new Label("Compare mode:"), compareMode, errorMode, errorType, useCustomJson, customJsonInput), problemInfoArea);
+        HBox problemBox = new HBox(10, new VBox(
+                new Label("Problem ID:"), problemInput, securityCheck, enableO2,
+                new Label("Compare mode:"), compareMode, errorMode, errorType, useCustomJson, customJsonInput
+        ), problemInfoArea);
         inputBox.getChildren().add(problemBox);
         return inputBox;
     }
