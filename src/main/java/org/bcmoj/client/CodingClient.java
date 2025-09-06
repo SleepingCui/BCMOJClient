@@ -123,7 +123,7 @@ public class CodingClient extends Application {
         return dbPane;
     }
 
-  private VBox createInputConfigSection() {
+    private VBox createInputConfigSection() {
         VBox inputBox = new VBox(5);
         problemInput = new TextField();
         problemInput.setPromptText("Problem ID");
@@ -160,9 +160,26 @@ public class CodingClient extends Application {
         customJsonInput.setPromptText("Paste your JSON config here...");
         customJsonInput.setPrefRowCount(12);
         customJsonInput.setDisable(true);
+        Button chooseJsonButton = new Button("Choose JSON file");
+        chooseJsonButton.setDisable(true);
+        chooseJsonButton.setOnAction(e -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Select JSON file");
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON Files", "*.json"));
+            File file = fileChooser.showOpenDialog(null);
+            if (file != null && file.exists()) {
+                try {
+                    String content = Files.readString(file.toPath());
+                    customJsonInput.setText(content);
+                } catch (Exception ex) {
+                    showError("Failed to read JSON file: " + ex.getMessage());
+                }
+            }
+        });
         useCustomJson.setOnAction(e -> {
             boolean useCustom = useCustomJson.isSelected();
             customJsonInput.setDisable(!useCustom);
+            chooseJsonButton.setDisable(!useCustom);
             problemInput.setDisable(useCustom);
             securityCheck.setDisable(useCustom);
             enableO2.setDisable(useCustom);
@@ -172,13 +189,12 @@ public class CodingClient extends Application {
         problemInfoArea.setEditable(false);
         problemInfoArea.setPrefRowCount(6);
         problemInfoArea.setPromptText("Problem info will appear here...");
-        HBox problemBox = new HBox(10, new VBox(
-                new Label("Problem ID:"), problemInput, securityCheck, enableO2,
-                new Label("Compare mode:"), compareMode, errorMode, errorType, useCustomJson, customJsonInput
-        ), problemInfoArea);
+        VBox jsonBox = new VBox(5, customJsonInput, chooseJsonButton);
+        HBox problemBox = new HBox(10, new VBox(new Label("Problem ID:"), problemInput, securityCheck, enableO2, new Label("Compare mode:"), compareMode, errorMode, errorType, useCustomJson, jsonBox), problemInfoArea);
         inputBox.getChildren().add(problemBox);
         return inputBox;
     }
+
 
     private HBox createFileSelectionSection() {
         HBox fileBox = new HBox(10);
