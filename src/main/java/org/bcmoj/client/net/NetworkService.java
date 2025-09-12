@@ -13,10 +13,10 @@ import org.bcmoj.client.CodingClient;
 public class NetworkService {
 
     @SuppressWarnings("CallToPrintStackTrace")
-    public List<String> sendAndReceive(String filePath, String jsonConfig, String serverHost, int serverPort, Consumer<Double> progressCallback) throws IOException {
+    public List<String> sendAndReceive(String filePath, String jsonConfig, String serverHost, int serverPort, int TimeOut, Consumer<Double> progressCallback) throws IOException {
         List<String> responses = new ArrayList<>();
         try (Socket socket = new Socket(serverHost, serverPort)) {
-            socket.setSoTimeout(30000);
+            socket.setSoTimeout(TimeOut);
 
             try (DataOutputStream out = new DataOutputStream(socket.getOutputStream()); DataInputStream in = new DataInputStream(socket.getInputStream())) {
                 CodingClient.log("Sending data to "+serverHost + ":" + serverPort+"...");

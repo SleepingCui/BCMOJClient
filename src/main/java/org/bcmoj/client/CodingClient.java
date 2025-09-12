@@ -39,15 +39,19 @@ public class CodingClient extends Application {
     private TextArea customJsonInput;
     private CheckBox useCustomJson;
     private TextArea problemInfoArea;
+    private TextField timeoutField;
+
 
     @Override
     public void start(Stage primaryStage) {
         instance = this;
         initializeServices();
         initializeResultMapping();
-        primaryStage.setTitle("Judge Client");
-        primaryStage.setScene(new Scene(createMainLayout(), 750, 700));
+        primaryStage.setTitle("BCMOJ Judge Client");
+        primaryStage.setScene(new Scene(createMainLayout(), 882, 700));
         primaryStage.show();
+        primaryStage.widthProperty().addListener((obs, oldVal, newVal) -> System.out.println("Window resized: width=" + newVal + ", height=" + primaryStage.getHeight()));
+        primaryStage.heightProperty().addListener((obs, oldVal, newVal) -> System.out.println("Window resized: width=" + primaryStage.getWidth() + ", height=" + newVal));
     }
 
     private void initializeServices() {
@@ -81,6 +85,8 @@ public class CodingClient extends Application {
         progressBar.setPrefWidth(Double.MAX_VALUE);
         mainLayout.getChildren().add(progressBar);
         mainLayout.getChildren().add(createOutputSection());
+        mainLayout.getChildren().add(createBottomBar());
+
         return mainLayout;
     }
 
@@ -218,6 +224,32 @@ public class CodingClient extends Application {
         return outputSection;
     }
 
+    private HBox createBottomBar() {
+        HBox bottomBar = new HBox(10);
+        bottomBar.setPadding(new Insets(5));
+        bottomBar.setAlignment(Pos.CENTER_LEFT);
+        String javaVersion = System.getProperty("java.version");
+        String osName = System.getProperty("os.name");
+        String osVersion = System.getProperty("os.version");
+        String javafxVersion = System.getProperty("javafx.version", "Unknown");
+        VBox statusBox = new VBox(2);
+        Label line1 = new Label("BCMOJ Judge Client");
+        Label line2 = new Label("Running on " + osName + "(" + osVersion + ") with Java " + javaVersion + " JavaFX " + javafxVersion);
+        statusBox.getChildren().addAll(line1, line2);
+
+        timeoutField = new TextField("200000");
+        timeoutField.setPrefWidth(100);
+        Label timeoutLabel = new Label("Response Timeout (ms):");
+        Button clearLogsBtn = new Button("Clear Logs");
+        clearLogsBtn.setOnAction(e -> outputBox.clear());
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        bottomBar.getChildren().addAll(statusBox, spacer, timeoutLabel, timeoutField, clearLogsBtn);
+        return bottomBar;
+    }
+
+
+
     private void selectFile() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Choose Cpp file");
@@ -256,7 +288,8 @@ public class CodingClient extends Application {
                     jsonConfig = JsonConfigBuilder.applyErrorConfig(jsonConfig, errorMode.isSelected(), errorType.getSelectionModel().getSelectedIndex() + 1);
                     final String finalJson = jsonConfig;
                     Platform.runLater(() -> log("Final JSON:\n" + finalJson));
-                    List<String> responses = networkService.sendAndReceive(cppFile, jsonConfig, serverIp, serverPort, progress -> Platform.runLater(() -> progressBar.setProgress(progress)));
+                    int timeout = Integer.parseInt(timeoutField.getText().trim());
+                    List<String> responses = networkService.sendAndReceive(cppFile, jsonConfig, serverIp, serverPort, timeout, progress -> Platform.runLater(() -> progressBar.setProgress(progress)));   //100000ms timeout
                     Platform.runLater(() -> processResponses(responses));
                 } catch (Exception e) {
                     Platform.runLater(() -> log("<Error> " + e.getMessage()));
