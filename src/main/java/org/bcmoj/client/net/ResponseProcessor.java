@@ -29,7 +29,7 @@ public class ResponseProcessor {
                         String index = key.split("_")[0];
                         int resultCode = data.get(key).asInt();
                         String resultText = resultMapping.getOrDefault(resultCode, "Unknown Status");
-                        int timeUsed = data.has(index + "_time") ? data.get(index + "_time").asInt() : 0;
+                        double timeUsed = data.has(index + "_time") ? data.get(index + "_time").asDouble() : 0.0;
 
                         testResults.add(new TestCaseResult(index, resultText, timeUsed));
                         totalTests++;

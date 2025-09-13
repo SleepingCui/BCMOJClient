@@ -48,7 +48,7 @@ public class CodingClient extends Application {
         initializeServices();
         initializeResultMapping();
         primaryStage.setTitle("BCMOJ Judge Client");
-        primaryStage.setScene(new Scene(createMainLayout(), 882, 700));
+        primaryStage.setScene(new Scene(createMainLayout(), 896, 815));
         primaryStage.show();
         primaryStage.widthProperty().addListener((obs, oldVal, newVal) -> System.out.println("Window resized: width=" + newVal + ", height=" + primaryStage.getHeight()));
         primaryStage.heightProperty().addListener((obs, oldVal, newVal) -> System.out.println("Window resized: width=" + primaryStage.getWidth() + ", height=" + newVal));
@@ -311,7 +311,8 @@ public class CodingClient extends Application {
     private void processResponses(List<String> responses) {
         EvaluationResult result = ResponseProcessor.processResponses(responses, resultMapping);
         for (TestCaseResult testCase : result.testResults()) {
-            log(String.format("Example %s: %s - %dms", testCase.index(), testCase.resultText(), testCase.timeUsed()));
+            System.out.println(testCase);
+            log(String.format("Example %s: %s - %sms", testCase.index(), testCase.resultText(), testCase.timeUsed()));
         }
         log(String.format("\nTotal: %d, AC: %d, AvgTime: %.2fms", result.totalTests(), result.accepted(), result.averageTime()));
     }
