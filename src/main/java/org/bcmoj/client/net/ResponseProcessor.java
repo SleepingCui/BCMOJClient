@@ -18,6 +18,7 @@ public class ResponseProcessor {
         int accepted = 0;
         int totalTests = 0;
         double totalTime = 0.0;
+        long totalMemory = 0;
 
         for (String response : responses) {
             try {
@@ -30,10 +31,12 @@ public class ResponseProcessor {
                         int resultCode = data.get(key).asInt();
                         String resultText = resultMapping.getOrDefault(resultCode, "Unknown Status");
                         double timeUsed = data.has(index + "_time") ? data.get(index + "_time").asDouble() : 0.0;
+                        long memoryUsed = data.has(index + "_mem") ? data.get(index + "_mem").asLong() : 0L;
 
-                        testResults.add(new TestCaseResult(index, resultText, timeUsed));
+                        testResults.add(new TestCaseResult(index, resultText, timeUsed, memoryUsed));
                         totalTests++;
                         totalTime += timeUsed;
+                        totalMemory += memoryUsed;
 
                         if (resultCode == 1) {
                             accepted++;
@@ -45,6 +48,7 @@ public class ResponseProcessor {
             }
         }
         double averageTime = totalTests > 0 ? totalTime / totalTests : 0.0;
-        return new EvaluationResult(testResults, accepted, totalTests, averageTime);
+        long averageMemory = totalTests > 0 ? totalMemory / totalTests : 0L;
+        return new EvaluationResult(testResults, accepted, totalTests, averageTime, averageMemory);
     }
 }

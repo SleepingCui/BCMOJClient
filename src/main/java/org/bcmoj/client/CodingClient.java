@@ -67,6 +67,7 @@ public class CodingClient extends Application {
         resultMapping.put(-4, "Compile Error");
         resultMapping.put(-3, "Wrong Answer");
         resultMapping.put(2, "Real Time Limit Exceeded");
+        resultMapping.put(3, "Memory Limit Exceeded"); // Added MLE status
         resultMapping.put(4, "Runtime Error");
         resultMapping.put(5, "System Error");
         resultMapping.put(1, "Accepted");
@@ -312,9 +313,9 @@ public class CodingClient extends Application {
         EvaluationResult result = ResponseProcessor.processResponses(responses, resultMapping);
         for (TestCaseResult testCase : result.testResults()) {
             System.out.println(testCase);
-            log(String.format("Example %s: %s - %sms", testCase.index(), testCase.resultText(), testCase.timeUsed()));
+            log(String.format("Example %s: %s - %sms - %sKB", testCase.index(), testCase.resultText(), testCase.timeUsed(), testCase.memoryUsed()));
         }
-        log(String.format("\nTotal: %d, AC: %d, AvgTime: %.2fms", result.totalTests(), result.accepted(), result.averageTime()));
+        log(String.format("\nTotal: %d, AC: %d, AvgTime: %.2fms, AvgMem: %dKB", result.totalTests(), result.accepted(), result.averageTime(), result.averageMemory()));
     }
 
     public static void log(String message) {

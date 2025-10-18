@@ -1,4 +1,4 @@
 package org.bcmoj.client;
 
-public record TestCaseResult(String index, String resultText, double timeUsed) {
+public record TestCaseResult(String index, String resultText, double timeUsed, long memoryUsed) {
 }

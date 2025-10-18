@@ -56,11 +56,25 @@ run {
 jar {
     manifest {
         attributes(
-                'Main-Class': 'org.bcmoj.client.Main'
+                'Main-Class': 'org.bcmoj.client.CodingClient'
         )
     }
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+tasks.register('packageExe', Exec) {
+    dependsOn 'build'
+
+    def javafxLibPath = configurations.runtimeClasspath.asPath
+
+    commandLine 'jpackage',
+            '--name', 'BCMOJClient',
+            '--input', "$buildDir/libs",
+            '--main-jar', 'BCMOJClient-1.0-SNAPSHOT.jar',
+            '--main-class', 'org.bcmoj.client.CodingClient',
+            '--type', 'exe',
+            '--module-path', javafxLibPath,
+            '--add-modules', 'javafx.controls,javafx.fxml'
 }
