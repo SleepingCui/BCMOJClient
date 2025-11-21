@@ -313,7 +313,7 @@ public class CodingClient extends Application {
         EvaluationResult result = ResponseProcessor.processResponses(responses, resultMapping);
         for (TestCaseResult testCase : result.testResults()) {
             System.out.println(testCase);
-            log(String.format("Example %s: %s - %sms - %sKB", testCase.index(), testCase.resultText(), testCase.timeUsed(), testCase.memoryUsed()));
+            log(String.format("Checkpoint %s: %s - %sms - %sKB", testCase.index(), testCase.resultText(), testCase.timeUsed(), testCase.memoryUsed()));
         }
         log(String.format("\nTotal: %d, AC: %d, AvgTime: %.2fms, AvgMem: %dKB", result.totalTests(), result.accepted(), result.averageTime(), result.averageMemory()));
     }

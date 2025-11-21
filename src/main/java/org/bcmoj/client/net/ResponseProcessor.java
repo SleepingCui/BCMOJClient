@@ -2,6 +2,7 @@ package org.bcmoj.client.net;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.bcmoj.client.CodingClient;
 import org.bcmoj.client.EvaluationResult;
 import org.bcmoj.client.TestCaseResult;
 
@@ -23,15 +24,18 @@ public class ResponseProcessor {
         for (String response : responses) {
             try {
                 JsonNode data = mapper.readTree(response);
-                Iterator<String> fieldNames = data.fieldNames();
-                while (fieldNames.hasNext()) {
-                    String key = fieldNames.next();
-                    if (key.endsWith("_res")) {
-                        String index = key.split("_")[0];
-                        int resultCode = data.get(key).asInt();
+                if (data.has("checkpoints")) {
+                    JsonNode checkpointsNode = data.get("checkpoints");
+                    Iterator<Map.Entry<String, JsonNode>> checkpointsFields = checkpointsNode.fields();
+                    while (checkpointsFields.hasNext()) {
+                        Map.Entry<String, JsonNode> entry = checkpointsFields.next();
+                        String index = entry.getKey();
+                        JsonNode testCaseData = entry.getValue();
+
+                        int resultCode = testCaseData.get("res").asInt();
                         String resultText = resultMapping.getOrDefault(resultCode, "Unknown Status");
-                        double timeUsed = data.has(index + "_time") ? data.get(index + "_time").asDouble() : 0.0;
-                        long memoryUsed = data.has(index + "_mem") ? data.get(index + "_mem").asLong() : 0L;
+                        double timeUsed = testCaseData.get("time").asDouble();
+                        long memoryUsed = testCaseData.get("mem").asLong();
 
                         testResults.add(new TestCaseResult(index, resultText, timeUsed, memoryUsed));
                         totalTests++;
@@ -42,11 +46,33 @@ public class ResponseProcessor {
                             accepted++;
                         }
                     }
+                } else {
+                    Iterator<String> fieldNames = data.fieldNames();
+                    while (fieldNames.hasNext()) {
+                        String key = fieldNames.next();
+                        if (key.endsWith("_res")) {
+                            String index = key.split("_")[0];
+                            int resultCode = data.get(key).asInt();
+                            String resultText = resultMapping.getOrDefault(resultCode, "Unknown Status");
+                            double timeUsed = data.has(index + "_time") ? data.get(index + "_time").asDouble() : 0.0;
+                            long memoryUsed = data.has(index + "_mem") ? data.get(index + "_mem").asLong() : 0L;
+
+                            testResults.add(new TestCaseResult(index, resultText, timeUsed, memoryUsed));
+                            totalTests++;
+                            totalTime += timeUsed;
+                            totalMemory += memoryUsed;
+
+                            if (resultCode == 1) {
+                                accepted++;
+                            }
+                        }
+                    }
                 }
             } catch (Exception e) {
-                System.err.println("Failed to parse response: " + response);
+                CodingClient.log("Failed to parse response: " + response + ". Error: " + e.getMessage());
             }
         }
+
         double averageTime = totalTests > 0 ? totalTime / totalTests : 0.0;
         long averageMemory = totalTests > 0 ? totalMemory / totalTests : 0L;
         return new EvaluationResult(testResults, accepted, totalTests, averageTime, averageMemory);
