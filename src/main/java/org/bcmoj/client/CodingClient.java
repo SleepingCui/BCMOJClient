@@ -26,7 +26,7 @@ public class CodingClient extends Application {
 
     private TextField dbHost, dbPort, dbUser, dbPass, dbName;
     private TextField problemInput;
-    private CheckBox securityCheck, enableO2, errorMode;
+    private CheckBox securityCheck, enableO2, errorMode, useNewFormat;
     private ComboBox<String> compareMode, errorType;
     private TextField cppPathDisplay;
     private TextArea outputBox;
@@ -149,6 +149,7 @@ public class CodingClient extends Application {
                 "4 - Float tolerant"
         );
         compareMode.getSelectionModel().selectFirst();
+        useNewFormat = new CheckBox("Use new format (v1.0.13-beta or later)");
         errorMode = new CheckBox("Insert error config");
         errorType = new ComboBox<>();
         errorType.getItems().addAll(
@@ -191,13 +192,14 @@ public class CodingClient extends Application {
             securityCheck.setDisable(useCustom);
             enableO2.setDisable(useCustom);
             compareMode.setDisable(useCustom);
+            useNewFormat.setDisable(useCustom);
         });
         problemInfoArea = new TextArea();
         problemInfoArea.setEditable(false);
         problemInfoArea.setPrefRowCount(6);
         problemInfoArea.setPromptText("Problem info will appear here...");
         VBox jsonBox = new VBox(5, customJsonInput, chooseJsonButton);
-        HBox problemBox = new HBox(10, new VBox(new Label("Problem ID:"), problemInput, securityCheck, enableO2, new Label("Compare mode:"), compareMode, errorMode, errorType, useCustomJson, jsonBox), problemInfoArea);
+        HBox problemBox = new HBox(10, new VBox(new Label("Problem ID:"), problemInput, securityCheck, enableO2, useNewFormat, new Label("Compare mode:"), compareMode, errorMode, errorType, useCustomJson, jsonBox), problemInfoArea);
         inputBox.getChildren().add(problemBox);
         return inputBox;
     }
@@ -286,7 +288,7 @@ public class CodingClient extends Application {
                         ProblemData problemData = databaseService.getProblemFromDatabase(problemId, dbConfig);
                         jsonConfig = buildJsonConfig(problemData);
                     }
-                    jsonConfig = JsonConfigBuilder.applyErrorConfig(jsonConfig, errorMode.isSelected(), errorType.getSelectionModel().getSelectedIndex() + 1);
+                    jsonConfig = JsonConfigBuilder.applyErrorConfig(jsonConfig, errorMode.isSelected(), errorType.getSelectionModel().getSelectedIndex() + 1, useNewFormat.isSelected());
                     final String finalJson = jsonConfig;
                     Platform.runLater(() -> log("Final JSON:\n" + finalJson));
                     int timeout = Integer.parseInt(timeoutField.getText().trim());
@@ -306,7 +308,7 @@ public class CodingClient extends Application {
     }
 
     private String buildJsonConfig(ProblemData problemData) {
-        return JsonConfigBuilder.buildConfig(problemData, securityCheck.isSelected(), enableO2.isSelected(), compareMode.getSelectionModel().getSelectedIndex() + 1, errorMode.isSelected(), errorType.getSelectionModel().getSelectedIndex() + 1);
+        return JsonConfigBuilder.buildConfig(problemData, securityCheck.isSelected(), enableO2.isSelected(), compareMode.getSelectionModel().getSelectedIndex() + 1, errorMode.isSelected(), errorType.getSelectionModel().getSelectedIndex() + 1, useNewFormat.isSelected());
     }
 
     private void processResponses(List<String> responses) {

@@ -24,7 +24,10 @@ public class ResponseProcessor {
         for (String response : responses) {
             try {
                 JsonNode data = mapper.readTree(response);
-                if (data.has("checkpoints")) {
+                boolean isNewFormat = isResponseNewFormat(data);
+
+                if (isNewFormat) {
+                    //new format
                     JsonNode checkpointsNode = data.get("checkpoints");
                     Iterator<Map.Entry<String, JsonNode>> checkpointsFields = checkpointsNode.fields();
                     while (checkpointsFields.hasNext()) {
@@ -47,6 +50,7 @@ public class ResponseProcessor {
                         }
                     }
                 } else {
+                    //old
                     Iterator<String> fieldNames = data.fieldNames();
                     while (fieldNames.hasNext()) {
                         String key = fieldNames.next();
@@ -76,5 +80,23 @@ public class ResponseProcessor {
         double averageTime = totalTests > 0 ? totalTime / totalTests : 0.0;
         long averageMemory = totalTests > 0 ? totalMemory / totalTests : 0L;
         return new EvaluationResult(testResults, accepted, totalTests, averageTime, averageMemory);
+    }
+
+    private static boolean isResponseNewFormat(JsonNode data) {
+        if (!data.has("checkpoints")) {
+            return false;
+        }
+
+        JsonNode checkpointsNode = data.get("checkpoints");
+        if (!checkpointsNode.isObject()) {
+            return false;
+        }
+        Iterator<Map.Entry<String, JsonNode>> fields = checkpointsNode.fields();
+        if (fields.hasNext()) {
+            JsonNode firstCheckpoint = fields.next().getValue();
+            return firstCheckpoint.isObject() && firstCheckpoint.has("res") && firstCheckpoint.has("time") && firstCheckpoint.has("mem");
+        }
+
+        return false;
     }
 }

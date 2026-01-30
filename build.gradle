@@ -2,17 +2,15 @@ plugins {
     id 'java'
     id 'application'
     id 'org.openjfx.javafxplugin' version '0.1.0'
-    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
-
-
 group = 'org.bcmoj.client'
-version = '1.0-SNAPSHOT'
+version = '1.0.0'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
 
 repositories {
@@ -20,61 +18,25 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.openjfx:javafx-controls:21.0.1'
-    implementation 'org.openjfx:javafx-fxml:21.0.1'
+    implementation 'org.openjfx:javafx-controls:17.0.10'
+    implementation 'org.openjfx:javafx-fxml:17.0.10'
+
     implementation 'mysql:mysql-connector-java:8.0.33'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
+
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.1'
-
 }
 
 javafx {
-    version = '21.0.1'
+    version = '17.0.10'
     modules = ['javafx.controls', 'javafx.fxml']
 }
 
 application {
     mainClass = 'org.bcmoj.client.CodingClient'
-    applicationDefaultJvmArgs = [
-            '--add-modules', 'javafx.controls,javafx.fxml',
-            '--add-opens', 'javafx.graphics/com.sun.javafx.application=ALL-UNNAMED'
-    ]
 }
 
 test {
     useJUnitPlatform()
-}
-
-run {
-    jvmArgs = [
-            '--module-path', configurations.runtimeClasspath.asPath,
-            '--add-modules', 'javafx.controls,javafx.fxml'
-    ]
-}
-
-jar {
-    manifest {
-        attributes(
-                'Main-Class': 'org.bcmoj.client.CodingClient'
-        )
-    }
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-tasks.register('packageExe', Exec) {
-    dependsOn 'build'
-
-    def javafxLibPath = configurations.runtimeClasspath.asPath
-
-    commandLine 'jpackage',
-            '--name', 'BCMOJClient',
-            '--input', "$buildDir/libs",
-            '--main-jar', 'BCMOJClient-1.0-SNAPSHOT.jar',
-            '--main-class', 'org.bcmoj.client.CodingClient',
-            '--type', 'exe',
-            '--module-path', javafxLibPath,
-            '--add-modules', 'javafx.controls,javafx.fxml'
 }
