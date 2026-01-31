@@ -67,7 +67,7 @@ public class CodingClient extends Application {
         resultMapping.put(-4, "Compile Error");
         resultMapping.put(-3, "Wrong Answer");
         resultMapping.put(2, "Real Time Limit Exceeded");
-        resultMapping.put(3, "Memory Limit Exceeded"); // Added MLE status
+        resultMapping.put(3, "Memory Limit Exceeded");
         resultMapping.put(4, "Runtime Error");
         resultMapping.put(5, "System Error");
         resultMapping.put(1, "Accepted");
@@ -361,11 +361,13 @@ public class CodingClient extends Application {
             StringBuilder sb = new StringBuilder();
             sb.append("Title: ").append(problemData.problem().get("title")).append("\n");
             sb.append("Time Limit: ").append(problemData.problem().get("time_limit")).append("ms").append("\n");
+            sb.append("Mem Limit: ").append(problemData.problem().get("mem_limit")).append("KiB").append("\n");
             if (!problemData.examples().isEmpty()) {
                 Map<String, String> example = problemData.examples().get(0);
-                sb.append("Example Input: ").append(example.get("input")).append("\n");
-                sb.append("Example Output: ").append(example.get("output")).append("\n");
+                sb.append("=== Example Input ===\n").append(example.get("input")).append("\n");
+                sb.append("=== Example Output ===\n").append(example.get("output")).append("\n");
             }
+            sb.append("=== Description ===\n").append(problemData.problem().get("description")).append("\n");
             String text = sb.toString();
             Platform.runLater(() -> problemInfoArea.setText(text));
         } catch (Exception e) {
